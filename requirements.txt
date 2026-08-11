@@ -1,0 +1,8 @@
+# LLM API client (this is NOT an MCP SDK — allowed by the project rules)
+anthropic>=0.40.0
+
+# Rich terminal UI (TUI)
+rich>=13.7.0
+
+# Load ANTHROPIC_API_KEY from .env
+python-dotenv>=1.0.1
