@@ -18,6 +18,10 @@ env/
 logs/*
 !logs/.gitkeep
 
+# Chatbot sandbox where the agent creates demo files/repos at runtime.
+# Created automatically at startup and holds a nested git repo — never tracked.
+workspace/
+
 # OS / editors
 .DS_Store
 Thumbs.db

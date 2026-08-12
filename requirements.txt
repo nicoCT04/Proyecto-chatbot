@@ -1,8 +1,19 @@
+# --- Our chatbot host (the only packages our code imports) ---
+
 # LLM API client (this is NOT an MCP SDK — allowed by the project rules)
 google-genai>=1.0.0
 
 # Rich terminal UI (TUI)
 rich>=13.7.0
 
-# Load ANTHROPIC_API_KEY from .env
+# Load GEMINI_API_KEY from .env
 python-dotenv>=1.0.1
+
+# --- Official MCP servers used by the chatbot ---
+# These run as external subprocesses; our code never imports them, it only
+# speaks JSON-RPC to them. The Filesystem server runs via `npx` (Node), so it
+# is not listed here. The Git server is Python:
+#   - mcp-server-git: the official Git MCP server (run as `python -m mcp_server_git`)
+#   - mcp<2: pin the MCP runtime the git server depends on (it targets the 1.x API)
+mcp-server-git>=0.6.0
+mcp<2

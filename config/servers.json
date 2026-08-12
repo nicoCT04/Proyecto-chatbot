@@ -1,0 +1,14 @@
+{
+  "servers": [
+    {
+      "name": "filesystem",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "${workspace}"]
+    },
+    {
+      "name": "git",
+      "command": "python",
+      "args": ["-m", "mcp_server_git"]
+    }
+  ]
+}
