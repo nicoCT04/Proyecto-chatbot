@@ -10,7 +10,7 @@ message exchange written in this repo drive the communication with MCP servers.
 
 ## Features
 
-- [ ] **(1)** Connects to an LLM through its API (Anthropic).
+- [ ] **(1)** Connects to an LLM through its API (Google Gemini).
 - [ ] **(2)** Keeps conversation context within a session.
 - [ ] **(3)** Logs every request/response exchanged with MCP servers.
 - [ ] **(4)** Uses the official **Filesystem** and **Git** MCP servers.
@@ -22,7 +22,7 @@ message exchange written in this repo drive the communication with MCP servers.
 
 - Python 3.14+
 - Node.js + npx (to run the official Filesystem/Git MCP servers)
-- An Anthropic API key (free credits, no card required — https://console.anthropic.com/)
+- A Google Gemini API key (free tier, no card required — https://aistudio.google.com/apikey)
 
 ## Installation
 
@@ -34,7 +34,7 @@ python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-cp .env.example .env             # then edit .env and set ANTHROPIC_API_KEY
+cp .env.example .env             # then edit .env and set GEMINI_API_KEY
 ```
 
 ## Usage
