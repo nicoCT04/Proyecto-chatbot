@@ -47,8 +47,9 @@ def extract_text(result: dict[str, Any]) -> str:
 
 
 class ServerManager:
-    def __init__(self, logger: MCPLogger) -> None:
+    def __init__(self, logger: MCPLogger, console=None) -> None:
         self.logger = logger
+        self.console = console
         self.clients: list[MCPClient] = []
         self.tool_owner: dict[str, MCPClient] = {}
 
@@ -75,6 +76,8 @@ class ServerManager:
         return definitions
 
     def run_tool(self, name: str, arguments: dict[str, Any]) -> str:
+        if self.console is not None:
+            self.console.print(f"[dim]  → {name}({arguments})[/dim]")
         client = self.tool_owner[name]
         result = client.call_tool(name, arguments)
         return extract_text(result)

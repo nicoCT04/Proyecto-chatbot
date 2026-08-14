@@ -18,12 +18,21 @@ class LLMChat:
     def ask(self, user_message: str,
             tools: list[dict[str, Any]] | None = None,
             run_tool: ToolRunner | None = None) -> str:
+        checkpoint = len(self.history)
         self.history.append(types.Content(
             role="user", parts=[types.Part(text=user_message)]))
         config = types.GenerateContentConfig(
             system_instruction=self.system_prompt or None,
             tools=self._as_gemini_tools(tools) if tools else None,
         )
+        try:
+            return self._run_turn(config, run_tool)
+        except Exception:
+            del self.history[checkpoint:]
+            raise
+
+    def _run_turn(self, config: types.GenerateContentConfig,
+                  run_tool: ToolRunner | None) -> str:
         while True:
             response = self.client.models.generate_content(
                 model=self.model, contents=self.history, config=config)

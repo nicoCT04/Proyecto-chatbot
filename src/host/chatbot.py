@@ -23,8 +23,10 @@ def ensure_git_repo(workspace: Path) -> None:
 def build_system_prompt(workspace: str) -> str:
     return (
         "You are a helpful assistant running inside a console chatbot for a "
-        "networking course. You can use tools from connected MCP servers "
-        "(filesystem and git). You operate inside this workspace directory: "
+        "networking course. You can use tools from connected MCP servers: a "
+        "filesystem server, a git server, and a 'sugarmill' server for a sugar "
+        "mill (harvest planning by cane maturity and producer payment by cane "
+        "quality). You operate inside this workspace directory: "
         f"{workspace}. When a filesystem or git tool needs a path or repository, "
         "use that directory unless the user says otherwise. Keep answers concise "
         "and keep track of the conversation."
@@ -36,7 +38,7 @@ class Chatbot:
                  console: Console | None = None) -> None:
         self.console = console or Console()
         self.logger = MCPLogger(console=self.console)
-        self.servers = ServerManager(self.logger)
+        self.servers = ServerManager(self.logger, self.console)
         self.chat = LLMChat(api_key, model, build_system_prompt(workspace))
 
     def start_servers(self, server_configs: list[dict]) -> None:
@@ -60,8 +62,14 @@ class Chatbot:
             if command == "/log":
                 self.logger.show()
                 continue
-            reply = self.chat.ask(user_message, tools=tools,
-                                  run_tool=self.servers.run_tool)
+            try:
+                with self.console.status("[dim]thinking...[/dim]"):
+                    reply = self.chat.ask(user_message, tools=tools,
+                                          run_tool=self.servers.run_tool)
+            except Exception as failure:
+                self.console.print(f"[red]LLM error:[/red] {failure}")
+                self.console.print("[dim]The session is still alive — try again.[/dim]\n")
+                continue
             self.console.print(f"[bold magenta]bot >[/bold magenta] {reply}\n")
 
     def close(self) -> None:
