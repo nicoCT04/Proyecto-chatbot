@@ -9,6 +9,11 @@
       "name": "git",
       "command": "python",
       "args": ["-m", "mcp_server_git"]
+    },
+    {
+      "name": "sugarmill",
+      "command": "python",
+      "args": ["-m", "src.servers.sugarmill"]
     }
   ]
 }
