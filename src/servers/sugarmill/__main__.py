@@ -110,5 +110,18 @@ def build_server() -> MCPServer:
 
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--http", action="store_true")
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=8000)
+    args = parser.parse_args()
+
     database.init_db()
-    build_server().run()
+    server = build_server()
+    if args.http:
+        from src.mcp.http_server import serve_http
+        serve_http(server, args.host, args.port)
+    else:
+        server.run()

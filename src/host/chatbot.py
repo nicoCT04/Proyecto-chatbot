@@ -88,8 +88,9 @@ def start() -> None:
     workspace = PROJECT_ROOT / "workspace"
     workspace.mkdir(exist_ok=True)
     ensure_git_repo(workspace)
+    config_name = os.environ.get("MCP_SERVERS_CONFIG", "config/servers.json")
     server_configs = load_server_configs(
-        PROJECT_ROOT / "config" / "servers.json", str(workspace), sys.executable)
+        PROJECT_ROOT / config_name, str(workspace), sys.executable)
 
     bot = Chatbot(api_key, model, str(workspace), console)
     bot.start_servers(server_configs)

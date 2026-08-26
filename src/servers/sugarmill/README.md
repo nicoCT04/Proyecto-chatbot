@@ -34,12 +34,30 @@ Then open http://127.0.0.1:8080 to view tables, run queries and export data.
 
 ## Run
 
+Two transports are supported, the same JSON-RPC messages over each.
+
+**stdio** (local, launched by the host as a child process):
+
 ```bash
 python -m src.servers.sugarmill
 ```
 
-The server speaks JSON-RPC over stdin/stdout. It is normally launched by the
-chatbot host (see `config/servers.json`), not by a human directly.
+**HTTP** (network, for remote use — runs as a standalone server):
+
+```bash
+python -m src.servers.sugarmill --http --port 8000
+```
+
+To make the chatbot use the HTTP server, start it as above and run the host
+with the HTTP config, whose `sugarmill` entry is a URL instead of a command:
+
+```bash
+MCP_SERVERS_CONFIG=config/servers.http.json python -m src.main
+```
+
+The stdio server is normally launched automatically by the chatbot host (see
+`config/servers.json`); the HTTP server runs on its own (locally now, in the
+cloud later).
 
 ## Domain formulas
 

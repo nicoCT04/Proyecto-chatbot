@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from ..mcp.client import MCPClient
+from ..mcp.http_transport import HttpTransport
 from ..mcp.transport import StdioTransport
 from .logger import MCPLogger
 
@@ -19,6 +20,9 @@ def load_server_configs(config_path: Path, workspace: str,
     raw = json.loads(config_path.read_text(encoding="utf-8"))
     configs = []
     for entry in raw["servers"]:
+        if "url" in entry:
+            configs.append({"name": entry["name"], "url": entry["url"]})
+            continue
         command = python_executable if entry["command"] == "python" else entry["command"]
         args = [arg.replace("${workspace}", workspace) for arg in entry["args"]]
         configs.append({"name": entry["name"], "command": command, "args": args})
@@ -55,7 +59,10 @@ class ServerManager:
 
     def start(self, server_configs: list[dict[str, Any]]) -> None:
         for config in server_configs:
-            transport = StdioTransport(config["command"], config["args"])
+            if "url" in config:
+                transport = HttpTransport(config["url"])
+            else:
+                transport = StdioTransport(config["command"], config["args"])
             client = MCPClient(config["name"], transport,
                                on_message=self.logger.for_server(config["name"]))
             client.connect()

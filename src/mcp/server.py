@@ -31,11 +31,11 @@ class MCPServer:
             if not line:
                 continue
             message = json.loads(line)
-            response = self._handle(message)
+            response = self.dispatch(message)
             if response is not None:
                 self._write(response)
 
-    def _handle(self, message: dict[str, Any]) -> dict[str, Any] | None:
+    def dispatch(self, message: dict[str, Any]) -> dict[str, Any] | None:
         method = message.get("method")
         message_id = message.get("id")
         if method == "initialize":
