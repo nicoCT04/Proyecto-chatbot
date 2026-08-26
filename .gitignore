@@ -22,6 +22,9 @@ logs/*
 # Created automatically at startup and holds a nested git repo — never tracked.
 workspace/
 
+# sugarmill SQLite database (generated from seed.py on first run)
+src/servers/sugarmill/*.db
+
 # OS / editors
 .DS_Store
 Thumbs.db

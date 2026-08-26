@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from src.mcp.server import MCPServer
-from src.servers.sugarmill import domain
+from src.servers.sugarmill import database, domain
 
 NO_ARGS = {"type": "object", "properties": {}}
 
@@ -82,12 +82,33 @@ def build_server() -> MCPServer:
     )
     server.add_tool(
         "zafra_report",
-        "Summarize the harvest season KPIs (TCH, TAH, recoverable sugar).",
+        "Summarize the current standing fields KPIs (TCH, TAH, recoverable sugar).",
         NO_ARGS,
         domain.tool_zafra_report,
+    )
+    server.add_tool(
+        "field_history",
+        "Show a field's past seasons (tons, pol, sugar, TCH, TAH).",
+        {"type": "object", "properties": {"field_id": {"type": "string"}},
+         "required": ["field_id"]},
+        domain.tool_field_history,
+    )
+    server.add_tool(
+        "season_summary",
+        "Summarize a past harvest season across all fields (defaults to the latest).",
+        {"type": "object", "properties": {
+            "season": {"type": "string", "description": "e.g. 2023-2024"}}},
+        domain.tool_season_summary,
+    )
+    server.add_tool(
+        "variety_performance",
+        "Compare cane varieties by historical TCH, TAH and recoverable sugar.",
+        NO_ARGS,
+        domain.tool_variety_performance,
     )
     return server
 
 
 if __name__ == "__main__":
+    database.init_db()
     build_server().run()

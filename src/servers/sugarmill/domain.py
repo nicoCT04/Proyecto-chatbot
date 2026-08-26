@@ -1,35 +1,14 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any
 
-DATA_FILE = Path(__file__).parent / "data.json"
+from . import database
 
 RECOVERY_EFFICIENCY = 0.88
 REFERENCE_KATC = 112.0
 POL_DECLINE_PER_WEEK = 0.15
 LOSS_PER_HOUR = 0.002
 MATURE_THRESHOLD_WEEKS = 1
-
-_data = json.loads(DATA_FILE.read_text(encoding="utf-8"))
-fields = _data["fields"]
-producers = _data["producers"]
-lab_samples: list[dict[str, Any]] = []
-
-
-def find_field(field_id: str) -> dict[str, Any]:
-    for field in fields:
-        if field["id"] == field_id:
-            return field
-    raise ValueError(f"field {field_id} not found")
-
-
-def find_producer(producer_id: str) -> dict[str, Any]:
-    for producer in producers:
-        if producer["id"] == producer_id:
-            return producer
-    raise ValueError(f"producer {producer_id} not found")
 
 
 def purity(pol: float, brix: float) -> float:
@@ -60,11 +39,10 @@ def projected_pol(field: dict[str, Any], week: int) -> float:
 
 
 def tool_list_fields(args: dict[str, Any]) -> str:
-    status_filter = args.get("status")
-    selected = [f for f in fields if not status_filter or f["status"] == status_filter]
+    fields = database.get_fields(args.get("status"))
     lines = ["Cane fields:"]
-    for field in selected:
-        producer = find_producer(field["producer_id"])["name"]
+    for field in fields:
+        producer = database.get_producer(field["producer_id"])["name"]
         lines.append(
             f"- {field['id']} | {field['variety']} | {field['hectares']} ha | "
             f"pol {field['base_pol']} | brix {field['brix']} | "
@@ -74,13 +52,12 @@ def tool_list_fields(args: dict[str, Any]) -> str:
 
 
 def tool_field_maturity(args: dict[str, Any]) -> str:
-    field = find_field(args["field_id"])
+    field = database.get_field(args["field_id"])
     weeks = int(args.get("weeks", 4))
-    current = projected_pol(field, 0)
     when = "already at peak" if field["weeks_to_peak"] <= 0 else f"in {field['weeks_to_peak']} week(s)"
     lines = [
         f"Maturity forecast for {field['id']} ({field['variety']}):",
-        f"- current pol: {current}",
+        f"- current pol: {projected_pol(field, 0)}",
         f"- peak pol {field['peak_pol']} reached {when}",
         "- projection:",
     ]
@@ -91,6 +68,7 @@ def tool_field_maturity(args: dict[str, Any]) -> str:
 
 def tool_recommend_harvest_plan(args: dict[str, Any]) -> str:
     capacity = float(args["weekly_capacity_tons"])
+    fields = database.get_fields()
     candidates = sorted(fields, key=lambda f: (f["weeks_to_peak"], -f["base_pol"]))
     plan = []
     remaining = capacity
@@ -122,7 +100,7 @@ def tool_recommend_harvest_plan(args: dict[str, Any]) -> str:
 
 
 def tool_estimate_sucrose_loss(args: dict[str, Any]) -> str:
-    field = find_field(args["field_id"])
+    field = database.get_field(args["field_id"])
     hours = float(args["hours_since_cut"])
     pol_now = projected_pol(field, 0)
     pol_after = round(pol_now * (1 - LOSS_PER_HOUR * hours), 2)
@@ -149,26 +127,25 @@ def tool_cane_quality(args: dict[str, Any]) -> str:
 
 
 def tool_register_lab_sample(args: dict[str, Any]) -> str:
-    field = find_field(args["field_id"])
+    field = database.get_field(args["field_id"])
     pol = float(args["pol"])
     brix = float(args["brix"])
-    sample = {"field_id": field["id"], "pol": pol, "brix": brix,
-              "purity": purity(pol, brix), "katc": recoverable_sugar_per_ton(pol)}
-    lab_samples.append(sample)
+    count = database.insert_lab_sample(
+        field["id"], pol, brix, purity(pol, brix), recoverable_sugar_per_ton(pol))
     return (
-        f"Lab sample registered for {field['id']} "
-        f"(sample #{len(lab_samples)}):\n"
-        f"- purity {sample['purity']} %, KATC {sample['katc']} kg/ton"
+        f"Lab sample registered for {field['id']} (sample #{count}):\n"
+        f"- purity {purity(pol, brix)} %, KATC {recoverable_sugar_per_ton(pol)} kg/ton"
     )
 
 
 def tool_list_lab_samples(args: dict[str, Any]) -> str:
-    if not lab_samples:
+    samples = database.get_lab_samples()
+    if not samples:
         return "No lab samples registered yet."
-    lines = [f"Lab samples ({len(lab_samples)}):"]
-    for index, sample in enumerate(lab_samples, start=1):
+    lines = [f"Lab samples ({len(samples)}):"]
+    for sample in samples:
         lines.append(
-            f"- #{index} {sample['field_id']}: pol {sample['pol']}, "
+            f"- #{sample['id']} {sample['field_id']}: pol {sample['pol']}, "
             f"brix {sample['brix']}, purity {sample['purity']} %, KATC {sample['katc']}"
         )
     return "\n".join(lines)
@@ -191,18 +168,55 @@ def tool_compute_payment(args: dict[str, Any]) -> str:
 
 
 def tool_zafra_report(args: dict[str, Any]) -> str:
-    total_hectares = sum(f["hectares"] for f in fields)
+    fields = database.get_fields()
+    total_hectares = round(sum(f["hectares"] for f in fields), 1)
     total_tons = sum(harvestable_tons(f) for f in fields)
     total_sugar = round(sum(harvestable_tons(f) * recoverable_sugar_per_ton(f["base_pol"])
                             / 1000 for f in fields), 1)
     average_pol = round(sum(f["base_pol"] for f in fields) / len(fields), 2)
-    tch = round(total_tons / total_hectares, 1)
-    tah = round(total_sugar / total_hectares, 2)
     return (
-        "Zafra report (all fields):\n"
+        "Zafra report (current standing fields):\n"
         f"- fields: {len(fields)} | area: {total_hectares} ha\n"
         f"- harvestable cane: {total_tons:.0f} t | average pol: {average_pol}\n"
         f"- estimated recoverable sugar: {total_sugar} t\n"
-        f"- TCH (t cane/ha): {tch} | TAH (t sugar/ha): {tah}\n"
-        f"- lab samples registered this session: {len(lab_samples)}"
+        f"- TCH (t cane/ha): {round(total_tons / total_hectares, 1)} | "
+        f"TAH (t sugar/ha): {round(total_sugar / total_hectares, 2)}\n"
+        f"- lab samples registered: {len(database.get_lab_samples())}"
     )
+
+
+def tool_field_history(args: dict[str, Any]) -> str:
+    field = database.get_field(args["field_id"])
+    history = database.get_field_history(field["id"])
+    lines = [f"Season history for {field['id']} ({field['variety']}):"]
+    for record in history:
+        lines.append(
+            f"- {record['season']}: {record['tons_cane']:.0f} t cane, "
+            f"pol {record['pol_avg']}, {record['sugar_tons']:.0f} t sugar, "
+            f"TCH {record['tch']}, TAH {record['tah']}"
+        )
+    return "\n".join(lines)
+
+
+def tool_season_summary(args: dict[str, Any]) -> str:
+    season = args.get("season") or database.get_seasons()[-1]
+    summary = database.get_season_summary(season)
+    if not summary["fields"]:
+        return f"No records for season {season}."
+    return (
+        f"Season summary {season}:\n"
+        f"- fields harvested: {summary['fields']}\n"
+        f"- total cane: {summary['tons_cane']:.0f} t | total sugar: {summary['sugar_tons']:.0f} t\n"
+        f"- average pol: {round(summary['pol'], 2)}\n"
+        f"- average TCH: {round(summary['tch'], 1)} | average TAH: {round(summary['tah'], 2)}"
+    )
+
+
+def tool_variety_performance(args: dict[str, Any]) -> str:
+    lines = ["Variety performance across all seasons (best TAH first):"]
+    for row in database.get_variety_performance():
+        lines.append(
+            f"- {row['variety']}: TCH {round(row['tch'], 1)}, TAH {round(row['tah'], 2)}, "
+            f"rendimiento {round(row['rendimiento'], 1)} kg/t ({row['records']} records)"
+        )
+    return "\n".join(lines)
