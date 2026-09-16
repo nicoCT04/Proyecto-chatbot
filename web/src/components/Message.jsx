@@ -2,6 +2,8 @@
 // `tools` is an optional list of tool names the bot invoked for this turn,
 // shown as chips so the JSON-RPC activity is visible inline.
 
+import { BotIcon, UserIcon } from "./icons.jsx";
+
 // Minimal, dependency-free inline markdown: **bold**, *italic*, `code`.
 // Builds React nodes (never raw HTML), so it is injection-safe.
 function renderInline(text) {
@@ -33,7 +35,7 @@ export default function Message({ role, text, tools = [] }) {
   return (
     <div className={`message message--${role}`}>
       <div className="message__avatar" aria-hidden="true">
-        {role === "user" ? "🧑" : role === "error" ? "⚠️" : "🍬"}
+        {role === "user" ? <UserIcon /> : <BotIcon />}
       </div>
       <div className="message__body">
         {tools.length > 0 && (

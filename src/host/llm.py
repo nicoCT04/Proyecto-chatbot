@@ -14,6 +14,19 @@ class LLMChat:
         self.model = model
         self.system_prompt = system_prompt
         self.history: list[types.Content] = []
+        # Cumulative token/request usage for this session (the API reports it
+        # per response; Google does not expose live remaining free-tier quota).
+        self.usage = {"requests": 0, "prompt_tokens": 0,
+                      "output_tokens": 0, "total_tokens": 0}
+
+    def _track_usage(self, response) -> None:
+        self.usage["requests"] += 1
+        meta = getattr(response, "usage_metadata", None)
+        if meta is None:
+            return
+        self.usage["prompt_tokens"] += meta.prompt_token_count or 0
+        self.usage["output_tokens"] += meta.candidates_token_count or 0
+        self.usage["total_tokens"] += meta.total_token_count or 0
 
     def ask(self, user_message: str,
             tools: list[dict[str, Any]] | None = None,
@@ -36,6 +49,7 @@ class LLMChat:
         while True:
             response = self.client.models.generate_content(
                 model=self.model, contents=self.history, config=config)
+            self._track_usage(response)
             self.history.append(response.candidates[0].content)
             calls = response.function_calls
             if not calls:

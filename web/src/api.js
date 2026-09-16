@@ -32,6 +32,17 @@ export function fetchLog() {
   return json("/api/log");
 }
 
+export function fetchUsage() {
+  return json("/api/usage");
+}
+
+export function setModel(model) {
+  return json("/api/model", {
+    method: "POST",
+    body: JSON.stringify({ model }),
+  });
+}
+
 export function resetConversation() {
   return json("/api/reset", { method: "POST" });
 }

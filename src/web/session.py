@@ -20,6 +20,23 @@ from ..host.llm import LLMChat
 from ..host.logger import MCPLogger
 from ..host.servers import ServerManager, load_server_configs
 
+# Models the UI can switch between, with reference free-tier limits (Google does
+# not expose live remaining quota, so these are documented references only).
+AVAILABLE_MODELS = [
+    {"id": "gemini-flash-lite-latest", "label": "Flash Lite · fast",
+     "rpm": 15, "rpd": 1000},
+    {"id": "gemini-3.5-flash", "label": "Flash 3.5 · best quality",
+     "rpm": 10, "rpd": 250},
+]
+_MODEL_IDS = {m["id"] for m in AVAILABLE_MODELS}
+
+# Friendly data-source label per MCP server, shown in the UI "data flow" panel.
+SERVER_SOURCE = {
+    "filesystem": "Workspace files",
+    "git": "Git repository",
+    "sugarmill": "SQLite database (sugarmill)",
+}
+
 
 class WebChatSession:
     """One long-lived conversation for the web UI.
@@ -87,16 +104,44 @@ class WebChatSession:
     def server_summary(self) -> dict[str, Any]:
         return {
             "model": self.model,
-            "servers": [
-                {
-                    "name": client.name,
-                    "info": client.server_info,
-                    "tools": [t["name"] for t in client.tools],
-                }
-                for client in self.servers.clients
-            ],
+            "available_models": AVAILABLE_MODELS,
+            "servers": [self._describe_server(client) for client in self.servers.clients],
             "tool_count": len(self.servers.tool_owner),
         }
+
+    def _describe_server(self, client) -> dict[str, Any]:
+        transport = client.transport
+        url = getattr(transport, "url", None)
+        if url:
+            location, where = url, "remote"
+        else:
+            command = getattr(transport, "command", "")
+            args = getattr(transport, "args", [])
+            location, where = " ".join([command, *args]).strip(), "local"
+        return {
+            "name": client.name,
+            "info": client.server_info,
+            "tools": [t["name"] for t in client.tools],
+            "transport": "http" if url else "stdio",
+            "where": where,
+            "location": location,
+            "source": SERVER_SOURCE.get(client.name, client.name),
+        }
+
+    def usage(self) -> dict[str, Any]:
+        limits = next((m for m in AVAILABLE_MODELS if m["id"] == self.model), {})
+        return {
+            "model": self.model,
+            "usage": dict(self.chat.usage),
+            "limits": {"rpm": limits.get("rpm"), "rpd": limits.get("rpd")},
+        }
+
+    def set_model(self, model: str) -> None:
+        if model not in _MODEL_IDS:
+            raise ValueError(f"unknown model: {model}")
+        with self._lock:
+            self.model = model
+            self.chat.model = model
 
     def reset(self) -> None:
         with self._lock:

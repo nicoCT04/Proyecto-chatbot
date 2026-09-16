@@ -50,6 +50,10 @@ class ChatRequest(BaseModel):
     message: str
 
 
+class ModelRequest(BaseModel):
+    model: str
+
+
 def _require_session() -> WebChatSession:
     if session is None:
         raise HTTPException(status_code=503, detail="session not ready")
@@ -76,6 +80,21 @@ def get_log() -> dict:
 @app.get("/api/servers")
 def get_servers() -> dict:
     return _require_session().server_summary()
+
+
+@app.get("/api/usage")
+def get_usage() -> dict:
+    return _require_session().usage()
+
+
+@app.post("/api/model")
+def set_model(request: ModelRequest) -> dict:
+    active = _require_session()
+    try:
+        active.set_model(request.model)
+    except ValueError as failure:
+        raise HTTPException(status_code=400, detail=str(failure))
+    return {"model": request.model}
 
 
 @app.post("/api/reset")

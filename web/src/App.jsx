@@ -2,7 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import Message from "./components/Message.jsx";
 import LogPanel from "./components/LogPanel.jsx";
 import Composer from "./components/Composer.jsx";
-import { fetchServers, resetConversation, sendMessage } from "./api.js";
+import { BrandMark, BotIcon, SunIcon, MoonIcon } from "./components/icons.jsx";
+import {
+  fetchServers,
+  fetchUsage,
+  resetConversation,
+  sendMessage,
+  setModel as apiSetModel,
+} from "./api.js";
 
 const EXAMPLES = [
   "List the fields that are ready to cut.",
@@ -19,22 +26,76 @@ function toolsFromLog(log) {
     .filter(Boolean);
 }
 
+// Build a human-readable trace of the last turn: host -> model -> tools -> back.
+function buildFlow(log, serverMap, model) {
+  const steps = [
+    { kind: "you", title: "You", detail: "your message enters the host" },
+    { kind: "llm", title: "Gemini", detail: model },
+  ];
+  const calls = log.filter(
+    (e) => e.direction === "send" && e.method === "tools/call"
+  );
+  if (calls.length === 0) {
+    steps.push({
+      kind: "note",
+      title: "No MCP tools used",
+      detail: "answered from the model's own knowledge",
+    });
+  } else {
+    for (const e of calls) {
+      const name = e.payload?.params?.name;
+      const srv = serverMap[e.server] || {};
+      const place = srv.where === "remote" ? srv.location : "local process";
+      steps.push({
+        kind: "tool",
+        title: name,
+        detail: `${e.server} · ${srv.source || ""} · ${place}`,
+      });
+    }
+  }
+  steps.push({ kind: "llm", title: "Gemini", detail: "composed the reply" });
+  return steps;
+}
+
 export default function App() {
   const [messages, setMessages] = useState([]);
   const [log, setLog] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [servers, setServers] = useState(null);
+  const [usage, setUsage] = useState(null);
+  const [flow, setFlow] = useState([]);
+  const [model, setModelState] = useState("");
   const [showLog, setShowLog] = useState(true);
+  const [theme, setTheme] = useState(
+    () => localStorage.getItem("theme") || "dark"
+  );
   const scrollRef = useRef(null);
 
   useEffect(() => {
-    fetchServers().then(setServers).catch(() => setServers(null));
+    document.documentElement.dataset.theme = theme;
+    try {
+      localStorage.setItem("theme", theme);
+    } catch {
+      /* ignore */
+    }
+  }, [theme]);
+
+  useEffect(() => {
+    fetchServers()
+      .then((s) => {
+        setServers(s);
+        setModelState(s.model);
+      })
+      .catch(() => setServers(null));
+    fetchUsage().then(setUsage).catch(() => {});
   }, []);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages, loading]);
+
+  const serverMap = Object.fromEntries((servers?.servers || []).map((s) => [s.name, s]));
 
   async function handleSend(text) {
     const content = (text ?? input).trim();
@@ -45,23 +106,32 @@ export default function App() {
     try {
       const data = await sendMessage(content);
       setLog((prev) => [...prev, ...data.log]);
+      setFlow(buildFlow(data.log, serverMap, model));
       setMessages((prev) => [
         ...prev,
         { role: "bot", text: data.reply || "(no answer)", tools: toolsFromLog(data.log) },
       ]);
+      fetchUsage().then(setUsage).catch(() => {});
     } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "error", text: `Error: ${err.message}` },
-      ]);
+      setMessages((prev) => [...prev, { role: "error", text: `Error: ${err.message}` }]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleModelChange(next) {
+    setModelState(next);
+    try {
+      await apiSetModel(next);
+    } catch {
+      /* keep UI selection; backend will report on next call */
     }
   }
 
   async function handleReset() {
     await resetConversation().catch(() => {});
     setMessages([]);
+    setFlow([]);
   }
 
   const connected = servers && servers.servers?.length > 0;
@@ -70,7 +140,9 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <div className="topbar__brand">
-          <span className="topbar__logo" aria-hidden="true">🍬</span>
+          <span className="topbar__logo" aria-hidden="true">
+            <BrandMark />
+          </span>
           <div>
             <h1>Sugar Mill MCP Chatbot</h1>
             <p className="topbar__sub">
@@ -78,16 +150,39 @@ export default function App() {
             </p>
           </div>
         </div>
+
         <div className="topbar__status">
           <span className={`dot ${connected ? "dot--on" : "dot--off"}`} />
-          {servers ? (
-            <span>
-              {servers.servers.length} servers · {servers.tool_count} tools ·{" "}
-              <code>{servers.model}</code>
-            </span>
-          ) : (
-            <span>connecting…</span>
+          <span className="topbar__meta">
+            {servers
+              ? `${servers.servers.length} servers · ${servers.tool_count} tools`
+              : "connecting…"}
+          </span>
+
+          {servers?.available_models && (
+            <select
+              className="model-select"
+              value={model}
+              onChange={(e) => handleModelChange(e.target.value)}
+              aria-label="Model"
+              title="LLM model"
+            >
+              {servers.available_models.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
           )}
+
+          <button
+            className="icon-btn"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            aria-label="Toggle theme"
+            title="Toggle light/dark"
+          >
+            {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+          </button>
           <button className="ghost-btn" onClick={() => setShowLog((v) => !v)}>
             {showLog ? "Hide log" : "Show log"}
           </button>
@@ -109,11 +204,7 @@ export default function App() {
                 </p>
                 <div className="empty__examples">
                   {EXAMPLES.map((ex) => (
-                    <button
-                      key={ex}
-                      className="example"
-                      onClick={() => handleSend(ex)}
-                    >
+                    <button key={ex} className="example" onClick={() => handleSend(ex)}>
                       {ex}
                     </button>
                   ))}
@@ -126,7 +217,9 @@ export default function App() {
             )}
             {loading && (
               <div className="message message--bot">
-                <div className="message__avatar" aria-hidden="true">🍬</div>
+                <div className="message__avatar" aria-hidden="true">
+                  <BotIcon />
+                </div>
                 <div className="message__body">
                   <div className="typing">
                     <span></span><span></span><span></span>
@@ -143,7 +236,7 @@ export default function App() {
           />
         </section>
 
-        {showLog && <LogPanel log={log} />}
+        {showLog && <LogPanel log={log} flow={flow} usage={usage} />}
       </main>
     </div>
   );

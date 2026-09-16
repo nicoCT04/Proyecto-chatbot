@@ -193,9 +193,13 @@ The custom server is documented in
 
 Besides the console, the project ships an optional **web chatbot** (React
 front-end + FastAPI backend) that drives the *same* MCP host. It shows the
-conversation on the left and the **live JSON-RPC traffic** with the MCP servers
-on the right (feature 3, made visual), with per-message payloads you can expand.
-The design follows HCI guidelines (calm agricultural palette, clear hierarchy,
+conversation on the left and, on the right, the **live JSON-RPC traffic** with
+the MCP servers (feature 3, made visual, with expandable payloads), a
+**data-flow** trace of the last turn (which server answered and where its data
+lives — local process or remote URL), and this session's **API token usage**.
+It also has a **light/dark theme** toggle and a **model switcher**
+(`gemini-flash-lite-latest` for speed, `gemini-3.5-flash` for quality). The
+design follows HCI guidelines (calm agricultural palette, clear hierarchy,
 keyboard-first composer, visible feedback states).
 
 ```

@@ -1,6 +1,5 @@
-// Live view of every JSON-RPC message exchanged with the MCP servers
-// (feature 3 of the project, made visible). Each row can be expanded to see
-// the full payload.
+// Right column: live JSON-RPC traffic (feature 3), plus a "data flow" trace of
+// the last turn (where the data came from) and this session's API usage.
 
 import { useState } from "react";
 
@@ -41,7 +40,53 @@ function LogRow({ entry }) {
   );
 }
 
-export default function LogPanel({ log }) {
+function DataFlow({ flow }) {
+  if (!flow || flow.length === 0) return null;
+  return (
+    <div className="flow">
+      <h3 className="flow__title">Data flow · last turn</h3>
+      <ol className="flow__list">
+        {flow.map((step, i) => (
+          <li key={i} className={`flow__step flow__step--${step.kind}`}>
+            <span className="flow__dot" />
+            <div className="flow__body">
+              <span className="flow__name">{step.title}</span>
+              <span className="flow__detail">{step.detail}</span>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function UsageFooter({ usage }) {
+  if (!usage) return null;
+  const u = usage.usage || {};
+  const limits = usage.limits || {};
+  return (
+    <div className="usage">
+      <div className="usage__head">
+        <span>API usage · this session</span>
+        <code>{usage.model}</code>
+      </div>
+      <div className="usage__grid">
+        <div><b>{u.requests ?? 0}</b><span>requests</span></div>
+        <div><b>{u.prompt_tokens ?? 0}</b><span>in tokens</span></div>
+        <div><b>{u.output_tokens ?? 0}</b><span>out tokens</span></div>
+        <div><b>{u.total_tokens ?? 0}</b><span>total tokens</span></div>
+      </div>
+      {(limits.rpm || limits.rpd) && (
+        <p className="usage__limits">
+          Free-tier reference: {limits.rpm ?? "—"} req/min · {limits.rpd ?? "—"} req/day
+          <span className="usage__note"> (Google does not expose live remaining quota)</span>
+        </p>
+      )}
+    </div>
+  );
+}
+
+export default function LogPanel({ log, flow, usage }) {
   return (
     <aside className="logpanel" aria-label="MCP JSON-RPC traffic">
       <header className="logpanel__head">
@@ -59,6 +104,8 @@ export default function LogPanel({ log }) {
           ))}
         </ul>
       )}
+      <DataFlow flow={flow} />
+      <UsageFooter usage={usage} />
     </aside>
   );
 }
