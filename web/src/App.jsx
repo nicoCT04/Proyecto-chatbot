@@ -57,6 +57,34 @@ function buildFlow(log, serverMap, model) {
   return steps;
 }
 
+function ToolsPopover({ servers }) {
+  return (
+    <span className="tools-pop" tabIndex={0}>
+      <span className="topbar__meta">
+        {servers.servers.length} servers · {servers.tool_count} tools ▾
+      </span>
+      <div className="tools-pop__panel" role="tooltip">
+        {servers.servers.map((server) => (
+          <div className="tools-pop__server" key={server.name}>
+            <div className="tools-pop__srv-head">
+              <span className="tools-pop__srv-name">{server.name}</span>
+              <span className={`tools-pop__badge tools-pop__badge--${server.where}`}>
+                {server.where}
+              </span>
+              <span className="tools-pop__srv-count">{server.tools.length}</span>
+            </div>
+            <div className="tools-pop__tools">
+              {server.tools.map((tool) => (
+                <code className="tools-pop__tool" key={tool}>{tool}</code>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </span>
+  );
+}
+
 export default function App() {
   const [messages, setMessages] = useState([]);
   const [log, setLog] = useState([]);
@@ -153,11 +181,11 @@ export default function App() {
 
         <div className="topbar__status">
           <span className={`dot ${connected ? "dot--on" : "dot--off"}`} />
-          <span className="topbar__meta">
-            {servers
-              ? `${servers.servers.length} servers · ${servers.tool_count} tools`
-              : "connecting…"}
-          </span>
+          {servers ? (
+            <ToolsPopover servers={servers} />
+          ) : (
+            <span className="topbar__meta">connecting…</span>
+          )}
 
           {servers?.available_models && (
             <select
