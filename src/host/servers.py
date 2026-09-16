@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -21,7 +22,15 @@ def load_server_configs(config_path: Path, workspace: str,
     configs = []
     for entry in raw["servers"]:
         if "url" in entry:
-            configs.append({"name": entry["name"], "url": entry["url"]})
+            # Allow ${VAR} in the URL so the remote endpoint (e.g. the Render
+            # URL) is supplied at runtime instead of being committed.
+            url = os.path.expandvars(entry["url"])
+            if "${" in url:
+                raise ValueError(
+                    f"server '{entry['name']}' has an unresolved variable in its "
+                    f"url: {entry['url']}. Set it in the environment, e.g. "
+                    f"SUGARMILL_URL=https://your-service.onrender.com")
+            configs.append({"name": entry["name"], "url": url})
             continue
         command = python_executable if entry["command"] == "python" else entry["command"]
         args = [arg.replace("${workspace}", workspace) for arg in entry["args"]]

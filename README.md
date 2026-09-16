@@ -16,7 +16,7 @@ message exchange written in this repository (`src/mcp/`).
 - [x] **(3)** Logs every request/response exchanged with MCP servers (`/log`).
 - [x] **(4)** Uses the official **Filesystem** and **Git** MCP servers.
 - [x] **(5)** Ships a **custom local MCP server** (`sugarmill`) for a sugar-mill use case.
-- [ ] **(6)** Remote deployment of the custom server *(second delivery)*.
+- [x] **(6)** Remote deployment of the custom server (Render) — see [Remote deployment](#remote-deployment-feature-6).
 - [ ] **(7)** Wireshark traffic analysis *(second delivery)*.
 - [x] **(extra)** Optional **Web UI** (React + FastAPI) with a live JSON-RPC log — see [Web UI](#web-ui-optional-extra).
 
@@ -112,6 +112,41 @@ traffic. Generated files and MCP logs are bind-mounted to `./workspace` and
 
 The `sugarmill` image is the same artifact used for cloud deployment
 (feature 6): it honours `$PORT`, so a cloud host can run it unchanged.
+
+## Remote deployment (feature 6)
+
+The custom `sugarmill` server can run in the cloud and be used by the chatbot
+**exactly like the local one** — only its URL changes. The repo ships a Render
+Blueprint (`render.yaml`) that builds `Dockerfile.sugarmill` and serves it over
+HTTPS.
+
+**Deploy on Render**
+
+1. Push this repo to GitHub (private is fine) and sign in to Render with GitHub.
+2. **New + → Blueprint**, pick this repo. Render reads `render.yaml`, builds the
+   image and publishes it at `https://sugarmill-mcp.onrender.com` (the name may
+   get a random suffix). `$PORT` is injected automatically.
+3. Wait for the service to go live, then open the URL in a browser — the health
+   endpoint returns `{"status": "ok", "server": "sugarmill"}`.
+
+> On Render's free tier the service sleeps after ~15 min idle; the first request
+> then takes ~30–60s to wake it. Hit the URL once before a demo.
+
+**Point the chatbot at the remote server**
+
+Use the `servers.remote.json` config and pass the URL via `SUGARMILL_URL`
+(filesystem and git still run locally):
+
+```bash
+export SUGARMILL_URL=https://sugarmill-mcp.onrender.com
+export MCP_SERVERS_CONFIG=config/servers.remote.json
+
+python -m src.main     # console, or:
+python -m src.web      # web UI
+```
+
+The chatbot now calls the remote server over HTTPS with the same JSON-RPC
+messages it uses locally.
 
 ## Example scenarios
 

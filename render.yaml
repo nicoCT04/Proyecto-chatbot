@@ -1,0 +1,21 @@
+# Render Blueprint for the remote sugarmill MCP server (feature 6).
+#
+# Deploy it from the Render dashboard: New + -> Blueprint -> pick this repo.
+# Render reads this file, builds the Docker image from Dockerfile.sugarmill and
+# publishes the server over HTTPS at https://<name>.onrender.com. Render injects
+# $PORT, which the server honours automatically.
+#
+# The chatbot then talks to it exactly like the local server:
+#   SUGARMILL_URL=https://<name>.onrender.com \
+#   MCP_SERVERS_CONFIG=config/servers.remote.json \
+#   python -m src.main       # or python -m src.web
+
+services:
+  - type: web
+    name: sugarmill-mcp
+    runtime: docker
+    dockerfilePath: ./Dockerfile.sugarmill
+    dockerContext: .
+    plan: free
+    healthCheckPath: /
+    autoDeploy: true
