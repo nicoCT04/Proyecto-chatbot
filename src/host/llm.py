@@ -14,8 +14,6 @@ class LLMChat:
         self.model = model
         self.system_prompt = system_prompt
         self.history: list[types.Content] = []
-        # Cumulative token/request usage for this session (the API reports it
-        # per response; Google does not expose live remaining free-tier quota).
         self.usage = {"requests": 0, "prompt_tokens": 0,
                       "output_tokens": 0, "total_tokens": 0}
 

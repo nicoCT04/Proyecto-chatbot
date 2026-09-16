@@ -1,6 +1,3 @@
-// Right column: live JSON-RPC traffic (feature 3), plus a "data flow" trace of
-// the last turn (where the data came from) and this session's API usage.
-
 import { useState } from "react";
 
 const KIND_LABEL = {

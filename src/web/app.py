@@ -1,9 +1,3 @@
-"""FastAPI backend for the web chatbot.
-
-It exposes a small REST API over the same MCP host used by the console app and,
-in production, serves the built React front-end from ``web/dist``. During
-development the React dev server (Vite) proxies ``/api`` here instead.
-"""
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
@@ -36,8 +30,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="MCP Chatbot Web", lifespan=lifespan)
 
-# In dev the Vite server (http://localhost:5173) calls this API from another
-# origin; in production the app is same-origin so CORS is a no-op.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
@@ -68,7 +60,7 @@ def chat(request: ChatRequest) -> dict:
         raise HTTPException(status_code=400, detail="empty message")
     try:
         return active.send(text)
-    except Exception as failure:  # keep the session alive on LLM/tool errors
+    except Exception as failure:
         raise HTTPException(status_code=502, detail=str(failure))
 
 
@@ -108,7 +100,6 @@ def health() -> dict:
     return {"ok": session is not None}
 
 
-# --- Serve the built React app (production / Docker) --------------------
 if FRONTEND_DIST.exists():
     app.mount(
         "/assets",
@@ -118,7 +109,6 @@ if FRONTEND_DIST.exists():
 
     @app.get("/{full_path:path}")
     def spa(full_path: str) -> FileResponse:
-        # Single-page app: any non-API route returns index.html.
         candidate = FRONTEND_DIST / full_path
         if full_path and candidate.is_file():
             return FileResponse(candidate)

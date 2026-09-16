@@ -22,8 +22,6 @@ def load_server_configs(config_path: Path, workspace: str,
     configs = []
     for entry in raw["servers"]:
         if "url" in entry:
-            # Allow ${VAR} in the URL so the remote endpoint (e.g. the Render
-            # URL) is supplied at runtime instead of being committed.
             url = os.path.expandvars(entry["url"])
             if "${" in url:
                 raise ValueError(

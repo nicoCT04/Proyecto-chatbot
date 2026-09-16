@@ -1,5 +1,3 @@
-// Tiny fetch wrapper around the FastAPI backend.
-
 async function json(path, options) {
   const response = await fetch(path, {
     headers: { "Content-Type": "application/json" },
@@ -10,7 +8,7 @@ async function json(path, options) {
     try {
       detail = (await response.json()).detail || detail;
     } catch {
-      /* keep statusText */
+      detail = response.statusText;
     }
     throw new Error(detail);
   }

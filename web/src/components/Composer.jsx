@@ -1,5 +1,3 @@
-// Message input box. Enter sends, Shift+Enter adds a newline.
-
 import { useRef } from "react";
 
 export default function Composer({ value, onChange, onSend, disabled }) {

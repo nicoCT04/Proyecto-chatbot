@@ -1,11 +1,5 @@
-// A single chat bubble. `role` is "user" | "bot" | "error".
-// `tools` is an optional list of tool names the bot invoked for this turn,
-// shown as chips so the JSON-RPC activity is visible inline.
-
 import { BotIcon, UserIcon } from "./icons.jsx";
 
-// Minimal, dependency-free inline markdown: **bold**, *italic*, `code`.
-// Builds React nodes (never raw HTML), so it is injection-safe.
 function renderInline(text) {
   const pattern = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)/g;
   const parts = text.split(pattern);

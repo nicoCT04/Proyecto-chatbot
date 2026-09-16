@@ -18,7 +18,6 @@ const EXAMPLES = [
   "For field F-14, register a lab sample with pol 14.2 and brix 16.7.",
 ];
 
-// Pull the tool names out of a turn's log delta (the tools/call requests we sent).
 function toolsFromLog(log) {
   return log
     .filter((e) => e.direction === "send" && e.method === "tools/call")
@@ -26,7 +25,6 @@ function toolsFromLog(log) {
     .filter(Boolean);
 }
 
-// Build a human-readable trace of the last turn: host -> model -> tools -> back.
 function buildFlow(log, serverMap, model) {
   const steps = [
     { kind: "you", title: "You", detail: "your message enters the host" },
@@ -104,9 +102,7 @@ export default function App() {
     document.documentElement.dataset.theme = theme;
     try {
       localStorage.setItem("theme", theme);
-    } catch {
-      /* ignore */
-    }
+    } catch {}
   }, [theme]);
 
   useEffect(() => {
@@ -151,9 +147,7 @@ export default function App() {
     setModelState(next);
     try {
       await apiSetModel(next);
-    } catch {
-      /* keep UI selection; backend will report on next call */
-    }
+    } catch {}
   }
 
   async function handleReset() {

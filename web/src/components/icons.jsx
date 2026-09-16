@@ -1,7 +1,4 @@
-// Small inline SVG icons — a formal replacement for emoji.
-
 export function BrandMark({ size = 26 }) {
-  // A stylized sugar-cane stalk with a leaf: on-theme but understated.
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <rect x="10.5" y="3" width="3" height="18" rx="1.5" fill="currentColor" />

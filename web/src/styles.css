@@ -1,14 +1,3 @@
-/* ------------------------------------------------------------------ *
- * Sugar Mill MCP Chatbot — visual design (light + dark themes)
- *
- * HCI notes:
- *  - Calm agricultural green (trust/growth) as primary, warm cane-amber accent.
- *  - Chat is the dominant column; JSON-RPC traffic, data-flow and API usage sit
- *    in a secondary column the user can hide.
- *  - Feedback everywhere: connection dot, typing dots, tool chips, theme + model
- *    controls, live token usage.
- * ------------------------------------------------------------------ */
-
 :root {
   --bg: #f4f6f5;
   --surface: #ffffff;
@@ -66,7 +55,6 @@ body {
 
 .app { display: flex; flex-direction: column; height: 100vh; }
 
-/* ---------- Top bar ---------- */
 .topbar {
   display: flex;
   align-items: center;
@@ -168,11 +156,9 @@ body {
 }
 .model-select option { color: #16211d; }
 
-/* ---------- Layout ---------- */
 .layout { flex: 1; display: grid; grid-template-columns: 1fr 400px; min-height: 0; }
 .layout--nolog { grid-template-columns: 1fr; }
 
-/* ---------- Chat ---------- */
 .chat { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 .chat__scroll {
   flex: 1;
@@ -199,7 +185,6 @@ body {
 }
 .example:hover { border-color: var(--brand); transform: translateY(-1px); }
 
-/* ---------- Messages ---------- */
 .message { display: flex; gap: 12px; max-width: 760px; }
 .message--user { flex-direction: row-reverse; align-self: flex-end; }
 .message__avatar {
@@ -256,7 +241,6 @@ body {
   40% { opacity: 1; transform: translateY(-3px); }
 }
 
-/* ---------- Composer ---------- */
 .composer {
   display: flex; gap: 10px;
   padding: 14px clamp(16px, 5vw, 64px);
@@ -285,7 +269,6 @@ body {
 .composer__send:disabled { background: #b7c6bf; cursor: not-allowed; }
 :root[data-theme="dark"] .composer__send:disabled { background: #38443d; }
 
-/* ---------- Log / info panel ---------- */
 .logpanel {
   border-left: 1px solid var(--border);
   background: var(--code-bg);
@@ -329,7 +312,6 @@ body {
   overflow-x: auto; color: var(--code-text);
 }
 
-/* ---------- Data flow ---------- */
 .flow { border-top: 1px solid var(--code-border); padding: 12px 14px; }
 .flow__title, .usage__head span {
   font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
@@ -353,7 +335,6 @@ body {
 .flow__name { font-size: 12.5px; font-weight: 600; }
 .flow__detail { font-family: var(--mono); font-size: 10.5px; opacity: 0.7; word-break: break-all; }
 
-/* ---------- Usage ---------- */
 .usage { border-top: 1px solid var(--code-border); padding: 12px 14px; }
 .usage__head { display: flex; align-items: center; justify-content: space-between; }
 .usage__head code {
@@ -367,7 +348,6 @@ body {
 .usage__limits { font-size: 10.5px; opacity: 0.65; margin: 10px 0 0; }
 .usage__note { opacity: 0.7; }
 
-/* ---------- Responsive ---------- */
 @media (max-width: 900px) {
   .layout, .layout--nolog { grid-template-columns: 1fr; }
   .logpanel { border-left: none; border-top: 1px solid var(--border); max-height: 45vh; }

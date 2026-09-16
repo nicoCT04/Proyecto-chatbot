@@ -113,8 +113,6 @@ if __name__ == "__main__":
     import argparse
     import os
 
-    # Defaults come from the environment so the same image runs locally, in
-    # docker-compose and on a cloud host (Cloud Run injects $PORT).
     default_host = os.environ.get("SUGARMILL_HOST", "127.0.0.1")
     default_port = int(os.environ.get("PORT", os.environ.get("SUGARMILL_PORT", "8000")))
 

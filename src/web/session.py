@@ -1,16 +1,8 @@
-"""Web chat session: a thin, thread-safe wrapper around the same MCP host the
-console chatbot uses (LLM + MCP servers + interaction logger).
-
-The console app (`src/host/chatbot.py`) and this module share the *exact* same
-building blocks, so the web UI is a real front-end over the identical host, not
-a second implementation of the protocol.
-"""
 from __future__ import annotations
 
 import os
 import sys
 import threading
-from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
@@ -20,17 +12,14 @@ from ..host.llm import LLMChat
 from ..host.logger import MCPLogger
 from ..host.servers import ServerManager, load_server_configs
 
-# Models the UI can switch between, with reference free-tier limits (Google does
-# not expose live remaining quota, so these are documented references only).
 AVAILABLE_MODELS = [
     {"id": "gemini-flash-lite-latest", "label": "Flash Lite · fast",
      "rpm": 15, "rpd": 1000},
     {"id": "gemini-3.5-flash", "label": "Flash 3.5 · best quality",
      "rpm": 10, "rpd": 250},
 ]
-_MODEL_IDS = {m["id"] for m in AVAILABLE_MODELS}
+_MODEL_IDS = {model["id"] for model in AVAILABLE_MODELS}
 
-# Friendly data-source label per MCP server, shown in the UI "data flow" panel.
 SERVER_SOURCE = {
     "filesystem": "Workspace files",
     "git": "Git repository",
@@ -39,13 +28,6 @@ SERVER_SOURCE = {
 
 
 class WebChatSession:
-    """One long-lived conversation for the web UI.
-
-    Holds the LLM history, the connected MCP servers and the interaction log,
-    guarding calls with a lock so overlapping HTTP requests never drive the
-    stdio subprocesses concurrently.
-    """
-
     def __init__(self) -> None:
         load_dotenv()
         api_key = os.environ.get("GEMINI_API_KEY")
@@ -58,11 +40,6 @@ class WebChatSession:
         self.workspace.mkdir(exist_ok=True)
         ensure_git_repo(self.workspace)
 
-        config_name = os.environ.get("MCP_SERVERS_CONFIG", "config/servers.json")
-        server_configs = load_server_configs(
-            PROJECT_ROOT / config_name, str(self.workspace), sys.executable)
-
-        # console=None keeps the host quiet: the web log is served over HTTP.
         self.logger = MCPLogger()
         self.servers = ServerManager(self.logger, console=None)
         self.chat = LLMChat(api_key, model, build_system_prompt(str(self.workspace)))
@@ -87,10 +64,7 @@ class WebChatSession:
                 self.servers.close()
                 self._started = False
 
-    # --- API used by the FastAPI routes ---------------------------------
-
     def send(self, message: str) -> dict[str, Any]:
-        """Run one user turn and return the reply plus the MCP log it produced."""
         tools = self.servers.tool_definitions()
         with self._lock:
             checkpoint = len(self.logger.interactions)
@@ -121,7 +95,7 @@ class WebChatSession:
         return {
             "name": client.name,
             "info": client.server_info,
-            "tools": [t["name"] for t in client.tools],
+            "tools": [tool["name"] for tool in client.tools],
             "transport": "http" if url else "stdio",
             "where": where,
             "location": location,
@@ -149,8 +123,6 @@ class WebChatSession:
 
 
 def _public_entry(entry: dict[str, Any]) -> dict[str, Any]:
-    """Shape a logger interaction for the browser (drop nothing sensitive, but
-    keep it flat and JSON-friendly)."""
     return {
         "time": entry["time"],
         "server": entry["server"],

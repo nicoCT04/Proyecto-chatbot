@@ -10,8 +10,6 @@ from .server import MCPServer
 def serve_http(server: MCPServer, host: str = "127.0.0.1", port: int = 8000) -> None:
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:
-            # Plain health check for container/cloud probes (not part of the
-            # JSON-RPC protocol, which always uses POST).
             payload = json.dumps({"status": "ok", "server": server.name}).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
