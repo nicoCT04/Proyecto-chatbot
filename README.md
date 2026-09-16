@@ -18,6 +18,7 @@ message exchange written in this repository (`src/mcp/`).
 - [x] **(5)** Ships a **custom local MCP server** (`sugarmill`) for a sugar-mill use case.
 - [ ] **(6)** Remote deployment of the custom server *(second delivery)*.
 - [ ] **(7)** Wireshark traffic analysis *(second delivery)*.
+- [x] **(extra)** Optional **Web UI** (React + FastAPI) with a live JSON-RPC log — see [Web UI](#web-ui-optional-extra).
 
 ## Architecture
 
@@ -127,6 +128,47 @@ single conversation. Run `/log` afterwards to see the JSON-RPC traffic.
 The custom server is documented in
 [`src/servers/sugarmill/README.md`](src/servers/sugarmill/README.md)
 (tools, parameters, formulas and JSON-RPC examples).
+
+## Web UI (optional, extra)
+
+Besides the console, the project ships an optional **web chatbot** (React
+front-end + FastAPI backend) that drives the *same* MCP host. It shows the
+conversation on the left and the **live JSON-RPC traffic** with the MCP servers
+on the right (feature 3, made visual), with per-message payloads you can expand.
+The design follows HCI guidelines (calm agricultural palette, clear hierarchy,
+keyboard-first composer, visible feedback states).
+
+```
+web/                 # React (Vite) front-end
+src/web/             # FastAPI backend (REST API over the MCP host)
+```
+
+Install and run (in two terminals, from the repo root):
+
+```bash
+# backend (serves the API on :8080; also serves web/dist if it was built)
+pip install -r requirements-web.txt
+python -m src.web
+
+# frontend
+cd web
+npm install
+npm run dev          # dev server on http://localhost:5173 (proxies /api to :8080)
+```
+
+Open http://localhost:5173 during development. For a single-origin production
+build, run `npm run build` inside `web/` and then just `python -m src.web` —
+FastAPI serves the compiled app from `web/dist` at http://localhost:8080.
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `POST` | `/api/chat` | send a message; returns the reply and the JSON-RPC log delta |
+| `GET` | `/api/servers` | connected servers, tools and model |
+| `GET` | `/api/log` | the full MCP interaction log |
+| `POST` | `/api/reset` | clear the conversation history |
+
+The web layer is a plain web framework — it is **not** an MCP SDK. The protocol
+is still implemented by hand in `src/mcp/`.
 
 ## Interaction logging
 

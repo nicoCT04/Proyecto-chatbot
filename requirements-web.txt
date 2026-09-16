@@ -1,0 +1,9 @@
+# Web UI backend (the optional Web chatbot — extra 15%).
+# The console chatbot does NOT need these; install only for the web app.
+# Install with: pip install -r requirements-web.txt
+#
+# These are a web framework, NOT an MCP SDK — the MCP protocol is still
+# implemented by hand over JSON-RPC in src/mcp/.
+
+fastapi>=0.115
+uvicorn[standard]>=0.30

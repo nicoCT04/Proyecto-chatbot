@@ -25,6 +25,10 @@ workspace/
 # sugarmill SQLite database (generated from seed.py on first run)
 src/servers/sugarmill/*.db
 
+# Web UI (React/Vite) build artifacts and dependencies
+web/node_modules/
+web/dist/
+
 # OS / editors
 .DS_Store
 Thumbs.db
