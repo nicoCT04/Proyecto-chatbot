@@ -1,0 +1,21 @@
+# syntax=docker/dockerfile:1
+#
+# Standalone image for the custom "sugarmill" MCP server, served over HTTP.
+# This is the same image used both by docker-compose (local "remote" server)
+# and for cloud deployment (feature 6) — a cloud host injects $PORT, which the
+# server honours automatically.
+#
+# The server uses only the Python standard library (sqlite3), so there is no
+# dependency install step. The SQLite database is created and seeded from the
+# SQL files on startup (database.init_db()).
+
+FROM python:3.13-slim-bookworm
+
+WORKDIR /app
+COPY src/ ./src/
+
+ENV SUGARMILL_HOST=0.0.0.0 \
+    SUGARMILL_PORT=8000
+
+EXPOSE 8000
+CMD ["python", "-m", "src.servers.sugarmill", "--http"]

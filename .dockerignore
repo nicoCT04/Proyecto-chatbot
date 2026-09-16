@@ -1,0 +1,28 @@
+# Keep the build context small and reproducible.
+.git
+.venv
+venv
+env
+__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Front-end deps/build are rebuilt inside the image
+web/node_modules
+web/dist
+
+# Local runtime state that must not leak into the image
+.env
+logs/*
+!logs/.gitkeep
+workspace
+src/servers/sugarmill/*.db
+
+# Docs / editors / OS
+docs
+*.pdf
+.DS_Store
+.idea
+.vscode

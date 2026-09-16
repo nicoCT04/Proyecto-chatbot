@@ -88,6 +88,31 @@ Commands inside the chat:
 - `/log` — show every JSON-RPC message exchanged with the MCP servers
 - `exit` / `quit` — leave
 
+## Run everything with Docker
+
+The whole system comes up with a single command. It starts the custom
+`sugarmill` server over **HTTP** (acting as the "remote" server) and the web
+chatbot host, which additionally launches the Filesystem and Git servers inside
+its own container:
+
+```bash
+cp .env.example .env      # set GEMINI_API_KEY
+docker compose up --build
+```
+
+Then open http://localhost:8080. Ports `8080` (web) and `8000` (sugarmill HTTP)
+are published on the host, so Wireshark can capture the host ⇄ server JSON-RPC
+traffic. Generated files and MCP logs are bind-mounted to `./workspace` and
+`./logs`.
+
+| Service | Image | Port | Role |
+|---|---|---|---|
+| `sugarmill` | `Dockerfile.sugarmill` | 8000 | custom MCP server over HTTP |
+| `web` | `Dockerfile` | 8080 | chatbot host + React UI + filesystem/git servers |
+
+The `sugarmill` image is the same artifact used for cloud deployment
+(feature 6): it honours `$PORT`, so a cloud host can run it unchanged.
+
 ## Example scenarios
 
 **General question + session context (features 1 & 2)**

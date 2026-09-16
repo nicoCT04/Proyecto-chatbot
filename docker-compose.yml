@@ -1,0 +1,40 @@
+# Brings up the whole system with one command:
+#
+#   docker compose up --build
+#
+#   - sugarmill : the custom MCP server over HTTP (acts as the "remote" server)
+#   - web       : the FastAPI + React chatbot host, reachable at :8080
+#
+# The web host also launches the official Filesystem and Git MCP servers as
+# subprocesses inside its own container, so all three servers are wired up.
+#
+# Requires a .env file with GEMINI_API_KEY (see .env.example).
+
+services:
+  sugarmill:
+    build:
+      context: .
+      dockerfile: Dockerfile.sugarmill
+    ports:
+      - "8000:8000" # exposed so Wireshark can capture host <-> server traffic
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/')"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env # provides GEMINI_API_KEY (and optional GEMINI_MODEL)
+    environment:
+      MCP_SERVERS_CONFIG: config/servers.docker.json
+    ports:
+      - "8080:8080"
+    depends_on:
+      sugarmill:
+        condition: service_healthy
+    volumes:
+      - ./workspace:/app/workspace # generated files/repos, visible on the host
+      - ./logs:/app/logs # MCP interaction logs, visible on the host
